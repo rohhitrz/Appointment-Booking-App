@@ -13,10 +13,10 @@ const steps = [
 ];
 
 const StepIndicator = () => {
-  const { currentStep, goToStep } = useAppointment();
+  const { currentStep } = useAppointment();
   
   // Calculate progress percentage
-  const progress = ((currentStep - 1) / (steps.length - 1)) * 100;
+  const progress = ((currentStep) / (steps.length - 1)) * 100;
   
   return (
     <div className={styles.container}>
@@ -35,9 +35,8 @@ const StepIndicator = () => {
             className={`${styles.stepNumber} 
               ${currentStep === step.id ? styles.active : ''} 
               ${currentStep > step.id ? styles.completed : ''}`}
-            onClick={() => currentStep > step.id ? goToStep(step.id) : null}
             whileHover={currentStep > step.id ? { scale: 1.1 } : {}}
-            style={{ cursor: currentStep > step.id ? 'pointer' : 'default' }}
+            style={{ cursor: 'default' }}
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.3, delay: step.id * 0.1 }}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './Confirmation.module.scss';
 import { useAppointment } from '@/app/context/AppointmentContext';
 import Button from '../Button/Button';
@@ -13,7 +13,6 @@ import {
   FiPhone, 
   FiFileText, 
   FiCheck,
-  FiDownload,
   FiShare2
 } from 'react-icons/fi';
 
@@ -21,6 +20,7 @@ const Confirmation = () => {
   const { appointment, resetBooking } = useAppointment();
   const [showConfetti, setShowConfetti] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   
   useEffect(() => {
     // Trigger confetti effect
@@ -29,7 +29,8 @@ const Confirmation = () => {
     // Generate fake QR code after small delay
     const timer = setTimeout(() => {
       // In a real app, you would generate a real QR code with the appointment details
-      setQrCode(`data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 29 29"><path d="M1 1h7v7h-7zM21 1h7v7h-7zM1 21h7v7h-7zM11 3h1v1h-1zM13 3h3v1h-3zM17 3h1v1h-1zM11 5h1v3h-1zM13 5h1v1h-1zM15 5h1v1h-1zM17 5h3v1h-3zM19 7h1v1h-1zM11 9h1v1h-1zM13 9h3v1h-3zM19 9h1v1h-1zM11 11h3v1h-3zM17 11h3v1h-3zM21 11h3v1h-3zM25 11h1v1h-1zM27 11h1v1h-1zM9 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM23 13h1v1h-1zM27 13h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1zM13 15h1v1h-1zM15 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM25 15h1v1h-1zM27 15h1v1h-1zM1 17h1v1h-1zM3 17h3v1h-3zM7 17h1v1h-1zM11 17h1v1h-1zM13 17h1v1h-1zM17 17h1v1h-1zM21 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM27 17h1v1h-1zM9 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM17 19h1v1h-1zM19 19h1v1h-1zM21 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM9 21h1v1h-1zM13 21h1v1h-1zM17 21h1v1h-1zM21 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM11 23h1v1h-1zM13 23h1v1h-1zM15 23h1v1h-1zM17 23h1v1h-1zM19 23h1v1h-1zM25 23h1v1h-1zM9 25h3v1h-3zM13 25h3v1h-3zM19 25h1v1h-1zM21 25h1v1h-1zM23 25h1v1h-1zM27 25h1v1h-1zM9 27h1v1h-1zM13 27h1v1h-1zM19 27h1v1h-1zM21 27h1v1h-1zM23 27h1v1h-1zM27 27h1v1h-1z"/><rect x="1" y="1" width="7" height="7" fill="none" stroke="black"/><rect x="21" y="1" width="7" height="7" fill="none" stroke="black"/><rect x="1" y="21" width="7" height="7" fill="none" stroke="black"/></svg>`);
+      const qrCodeSvg = `data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 29 29"><path d="M1 1h7v7h-7zM21 1h7v7h-7zM1 21h7v7h-7zM11 3h1v1h-1zM13 3h3v1h-3zM17 3h1v1h-1zM11 5h1v3h-1zM13 5h1v1h-1zM15 5h1v1h-1zM17 5h3v1h-3zM19 7h1v1h-1zM11 9h1v1h-1zM13 9h3v1h-3zM19 9h1v1h-1zM11 11h3v1h-3zM17 11h3v1h-3zM21 11h3v1h-3zM25 11h1v1h-1zM27 11h1v1h-1zM9 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM23 13h1v1h-1zM27 13h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1zM13 15h1v1h-1zM15 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM25 15h1v1h-1zM27 15h1v1h-1zM1 17h1v1h-1zM3 17h3v1h-3zM7 17h1v1h-1zM11 17h1v1h-1zM13 17h1v1h-1zM17 17h1v1h-1zM21 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM27 17h1v1h-1zM9 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM17 19h1v1h-1zM19 19h1v1h-1zM21 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM9 21h1v1h-1zM13 21h1v1h-1zM17 21h1v1h-1zM21 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM11 23h1v1h-1zM13 23h1v1h-1zM15 23h1v1h-1zM17 23h1v1h-1zM19 23h1v1h-1zM25 23h1v1h-1zM9 25h3v1h-3zM13 25h3v1h-3zM19 25h1v1h-1zM21 25h1v1h-1zM23 25h1v1h-1zM27 25h1v1h-1zM9 27h1v1h-1zM13 27h1v1h-1zM19 27h1v1h-1zM21 27h1v1h-1zM23 27h1v1h-1zM27 27h1v1h-1z"/><rect x="1" y="1" width="7" height="7" fill="none" stroke="black"/><rect x="21" y="1" width="7" height="7" fill="none" stroke="black"/><rect x="1" y="21" width="7" height="7" fill="none" stroke="black"/></svg>`;
+      setQrCode(qrCodeSvg);
     }, 800);
     
     return () => {
@@ -56,16 +57,38 @@ const Confirmation = () => {
   
   // Share appointment functionality (mock)
   const handleShare = () => {
+    if (isSharing) return; // Prevent multiple share attempts
+    
     if (navigator.share) {
+      setIsSharing(true);
       navigator.share({
         title: 'My Booking Confirmation',
-        text: `I've booked an appointment for ${formattedDate} at ${appointment.time}`,
+        text: `I have booked an appointment for ${formattedDate} at ${appointment.time}`,
         url: window.location.href,
-      }).catch(err => {
+      })
+      .then(() => {
+        console.log('Successfully shared');
+      })
+      .catch(err => {
         console.error('Error sharing: ', err);
+      })
+      .finally(() => {
+        setIsSharing(false);
       });
     } else {
-      alert('Sharing not supported on this browser. The link has been copied to clipboard.');
+      // Fallback for browsers that don't support navigator.share
+      const shareText = `I have booked an appointment for ${formattedDate} at ${appointment.time}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareText)
+          .then(() => {
+            alert('Booking info copied to clipboard');
+          })
+          .catch(() => {
+            alert('Sharing not supported. Please copy the link manually.');
+          });
+      } else {
+        alert('Sharing not supported. Please copy the link manually.');
+      }
     }
   };
   
@@ -221,7 +244,13 @@ const Confirmation = () => {
           >
             <h3>Your Booking QR Code</h3>
             <div className={styles.qrCode}>
-              <img src={qrCode} alt="Booking QR Code" />
+              <img 
+                src={qrCode} 
+                alt="Booking QR Code" 
+                width={120} 
+                height={120} 
+                style={{ margin: '0 auto', display: 'block' }}
+              />
             </div>
             <p>Show this QR code when you arrive</p>
           </motion.div>
@@ -247,23 +276,24 @@ const Confirmation = () => {
             icon={<FiShare2 />}
             variant="ghost"
             size="small"
+            disabled={isSharing}
           >
-            Share
+            {isSharing ? 'Sharing...' : 'Share Booking'}
           </Button>
         </motion.div>
       </motion.div>
       
-      <motion.div 
-        className={styles.buttonGroup}
+      <motion.div
+        className={styles.resetButton}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 1.4 }}
       >
-        <Button 
+        <Button
           onClick={resetBooking}
           variant="neumorphic"
         >
-          Make another booking
+          Book Another Appointment
         </Button>
       </motion.div>
     </motion.div>

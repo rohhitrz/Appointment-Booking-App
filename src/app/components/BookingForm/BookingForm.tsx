@@ -23,7 +23,7 @@ const schema = yup.object({
 type FormData = yup.InferType<typeof schema>;
 
 const BookingForm = () => {
-  const { selectedDate, selectedTime, formData, setFormData, nextStep, prevStep, confirmAppointment } = useAppointment();
+  const { selectedDate, selectedTime, formData, setFormData, prevStep, confirmAppointment } = useAppointment();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   

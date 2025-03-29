@@ -5,7 +5,7 @@ import styles from './TimeSelector.module.scss';
 import { useAppointment } from '@/app/context/AppointmentContext';
 import Button from '../Button/Button';
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiArrowLeft, FiClock, FiCalendar, FiTrash2, FiX } from 'react-icons/fi';
+import { FiArrowRight, FiArrowLeft, FiCalendar, FiTrash2 } from 'react-icons/fi';
 
 // Define TimeSlot interface
 interface TimeSlot {
@@ -71,7 +71,7 @@ const TimeSelector = () => {
     };
     
     // Check availability for time slots
-    const generateSlots = (slots: string[], timeType: string): TimeSlot[] => {
+    const generateSlots = (slots: string[]): TimeSlot[] => {
       return slots.map((time, index) => {
         const isBooked = isTimeSlotBooked(selectedDate, time);
         // Instead of random, use deterministic availability
@@ -86,9 +86,9 @@ const TimeSelector = () => {
     };
     
     setTimeSlots({
-      morning: generateSlots(morningSlots, 'morning'),
-      afternoon: generateSlots(afternoonSlots, 'afternoon'),
-      evening: generateSlots(eveningSlots, 'evening')
+      morning: generateSlots(morningSlots),
+      afternoon: generateSlots(afternoonSlots),
+      evening: generateSlots(eveningSlots)
     });
     
     // Clear selected time when date changes
@@ -123,14 +123,7 @@ const TimeSelector = () => {
         year: 'numeric'
       })
     : '';
-  
-  // Filter bookings for the selected date
-  const bookingsForSelectedDate = selectedDate 
-    ? bookedAppointments.filter(booking => 
-        booking.date.toDateString() === selectedDate.toDateString()
-      )
-    : [];
-  
+    
   // Sort bookings by date
   const sortedBookings = [...bookedAppointments].sort((a, b) => {
     // Sort by date (newest first)
@@ -150,29 +143,6 @@ const TimeSelector = () => {
     bookingDate.setHours(0, 0, 0, 0);
     
     return bookingDate >= today;
-  };
-  
-  // Check if a slot is available or booked
-  const isSlotAvailable = (time: string): boolean => {
-    if (!selectedDate) return false;
-    
-    const timeGroup = 
-      timeSlots.morning.find(slot => slot.time === time) ||
-      timeSlots.afternoon.find(slot => slot.time === time) ||
-      timeSlots.evening.find(slot => slot.time === time);
-    
-    return timeGroup?.available || false;
-  };
-  
-  const isSlotBooked = (time: string): boolean => {
-    if (!selectedDate) return false;
-    
-    const timeGroup = 
-      timeSlots.morning.find(slot => slot.time === time) ||
-      timeSlots.afternoon.find(slot => slot.time === time) ||
-      timeSlots.evening.find(slot => slot.time === time);
-    
-    return timeGroup?.booked || false;
   };
   
   return (
@@ -210,7 +180,7 @@ const TimeSelector = () => {
         >
           <h3>Your Bookings</h3>
           {bookedAppointments.length === 0 ? (
-            <p>You don't have any bookings yet.</p>
+            <p>You don&apos;t have any bookings yet.</p>
           ) : (
             <div className={styles.bookingsList}>
               {sortedBookings.map((booking) => (
@@ -264,7 +234,7 @@ const TimeSelector = () => {
         </motion.div>
       )}
       
-      {/* <div className={styles.legend}>
+      <div className={styles.legend}>
         <div className={styles.legendItem}>
           <div className={`${styles.legendColor} ${styles.availableColor}`}></div>
           <span>Available</span>
@@ -281,7 +251,7 @@ const TimeSelector = () => {
           <div className={`${styles.legendColor} ${styles.unavailableColor}`}></div>
           <span>Unavailable</span>
         </div>
-      </div> */}
+      </div>
       
       <div className={styles.timeGroup}>
         <h3 className={styles.groupTitle}>Morning</h3>

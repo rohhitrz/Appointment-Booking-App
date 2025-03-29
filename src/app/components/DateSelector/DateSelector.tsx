@@ -7,149 +7,139 @@ import styles from './DateSelector.module.scss';
 import { useAppointment } from '@/app/context/AppointmentContext';
 import Button from '../Button/Button';
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiCalendar } from 'react-icons/fi';
+import { FiArrowRight, FiArrowLeft } from 'react-icons/fi';
 
-// Define a type for react-calendar's value
-type CalendarValue = Date | Date[] | null;
+type CalendarValue = Date | null | [Date | null, Date | null];
 
 const DateSelector = () => {
-  const { selectedDate, setSelectedDate, nextStep, bookedAppointments } = useAppointment();
-  const [error, setError] = useState<string | null>(null);
-  const [activeDateHighlight, setActiveDateHighlight] = useState<Date | null>(null);
+  const { selectedDate, setSelectedDate, nextStep, prevStep, bookedAppointments } = useAppointment();
   
-  // Set min date to today and max date to 3 months from now
-  const minDate = new Date();
-  const maxDate = new Date();
-  maxDate.setMonth(maxDate.getMonth() + 3);
+  // Keep track of the minimum allowed date (today)
+  const [minDate, setMinDate] = useState<Date>(new Date());
   
-  // Update active date highlight when selected date changes
+  // Keep track of the maximum allowed date (3 months from now)
+  const [maxDate, setMaxDate] = useState<Date>(new Date());
+  
   useEffect(() => {
-    if (selectedDate) {
-      setActiveDateHighlight(selectedDate);
+    // Set minDate to today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    setMinDate(today);
+    
+    // Set maxDate to 3 months from now
+    const threeMonthsFromNow = new Date();
+    threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+    setMaxDate(threeMonthsFromNow);
+    
+    // If no date is selected, default to today
+    if (!selectedDate) {
+      setSelectedDate(today);
     }
-  }, [selectedDate]);
+  }, [selectedDate, setSelectedDate]);
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleDateChange = (value: any) => {
+  const handleDateChange = (value: CalendarValue) => {
     if (value instanceof Date) {
       // Immediately highlight the selected date
-      setActiveDateHighlight(value);
-      
-      // Set the actual selected date
       setSelectedDate(value);
-      setError(null);
     }
   };
   
-  const handleContinue = () => {
-    if (!selectedDate) {
-      setError('Please select a date to continue');
-      return;
-    }
-    nextStep();
-  };
-  
-  // Filter out unavailable dates
-  const tileDisabled = ({ date }: { date: Date }) => {
-    // Disable past dates
-    if (date < new Date(new Date().setHours(0, 0, 0, 0))) {
-      return true;
-    }
+  // Check if a date has bookings
+  const tileClassName = ({ date }: { date: Date }): string | null => {
+    // Convert to date string for comparison
+    const dateString = date.toDateString();
     
-    // Disable weekends if needed
+    // Check if the date is the currently selected date
+    const isActive = selectedDate && dateString === selectedDate.toDateString();
+    
+    // Check if the date has any bookings
+    const hasBookings = bookedAppointments.some(booking => 
+      booking.date.toDateString() === dateString
+    );
+    
+    if (isActive) return 'activeDate';
+    if (hasBookings) return 'hasBookings';
+    return null;
+  };
+  
+  // Disable weekends or past dates
+  const disableTile = ({ date }: { date: Date }): boolean => {
+    // Disable dates in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (date < today) return true;
+    
+    // Optionally disable weekends (uncomment to activate)
     // const day = date.getDay();
-    // if (day === 0 || day === 6) { // 0 is Sunday, 6 is Saturday
-    //   return true;
-    // }
+    // if (day === 0 || day === 6) return true; // 0 = Sunday, 6 = Saturday
     
     return false;
   };
   
-  // Custom tile class for booked dates
-  const tileClassName = ({ date, view }: { date: Date; view: string }) => {
-    if (view !== 'month') return null;
-    
-    // Check if date has any bookings
-    const hasBookings = bookedAppointments.some(appointment => 
-      appointment.date.toDateString() === date.toDateString()
-    );
-    
-    // Highlight the active date
-    const isActiveDate = activeDateHighlight && 
-      activeDateHighlight.toDateString() === date.toDateString();
-    
-    if (hasBookings && isActiveDate) {
-      return `${styles.hasBookings} ${styles.activeDate}`;
-    } else if (hasBookings) {
-      return styles.hasBookings;
-    } else if (isActiveDate) {
-      return styles.activeDate;
-    }
-    
-    return null;
-  };
-  
   return (
-    <motion.div 
+    <motion.div
       className={styles.container}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5 }}
     >
       <div className={styles.title}>
         <h2>Select a Date</h2>
-        <p>Choose a date for your appointment</p>
+        <p>Choose your preferred appointment date</p>
       </div>
       
       <div className={styles.calendarWrapper}>
         <Calendar 
-          onChange={handleDateChange as any}
+          onChange={handleDateChange}
           value={selectedDate}
           minDate={minDate}
           maxDate={maxDate}
-          tileDisabled={tileDisabled}
           tileClassName={tileClassName}
-          prevLabel={<span className={styles.navArrow}>←</span>}
-          nextLabel={<span className={styles.navArrow}>→</span>}
+          tileDisabled={disableTile}
+          // Custom navigation
           navigationLabel={({ date }) => (
             <span className={styles.navLabel}>
               {date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </span>
           )}
+          prevLabel={<span className={styles.navArrow}>&larr;</span>}
+          nextLabel={<span className={styles.navArrow}>&rarr;</span>}
+          // Don't allow to view invalid dates
+          minDetail="month"
+          // Use default calendar type
+          // calendarType="US"
         />
       </div>
       
-      {/* <div className={styles.legend}>
+      <div className={styles.legend}>
         <div className={styles.legendItem}>
           <div className={`${styles.legendColor} ${styles.availableColor}`}></div>
           <span>Available</span>
         </div>
         <div className={styles.legendItem}>
-          <div className={`${styles.legendColor} ${styles.bookedColor}`}></div>
-          <span>Partially Booked</span>
-        </div>
-        <div className={styles.legendItem}>
           <div className={`${styles.legendColor} ${styles.selectedColor}`}></div>
           <span>Selected</span>
         </div>
-      </div> */}
-      
-      {error && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ color: 'var(--secondary)', textAlign: 'center', marginBottom: '1rem' }}
-        >
-          {error}
-        </motion.p>
-      )}
+        <div className={styles.legendItem}>
+          <div className={`${styles.legendColor} ${styles.bookedColor}`}></div>
+          <span>Has Bookings</span>
+        </div>
+      </div>
       
       <div className={styles.buttonGroup}>
-        <div></div> {/* Empty div for spacing */}
         <Button
-          onClick={handleContinue}
+          onClick={prevStep}
+          icon={<FiArrowLeft />}
+          variant="ghost"
+        >
+          Back
+        </Button>
+        <Button
+          onClick={nextStep}
           icon={<FiArrowRight />}
           variant="neumorphic"
+          disabled={!selectedDate}
         >
           Continue
         </Button>

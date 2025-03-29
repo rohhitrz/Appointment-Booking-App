@@ -1,9 +1,10 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
-// Define the types
-export interface AppointmentFormData {
+// Types
+export interface FormData {
   name: string;
   email: string;
   phone: string;
@@ -14,24 +15,23 @@ export interface Appointment {
   id: string;
   date: Date;
   time: string;
-  formData: AppointmentFormData;
+  formData: FormData;
 }
 
 interface AppointmentContextType {
   selectedDate: Date | null;
-  selectedTime: string | null;
-  formData: AppointmentFormData;
-  currentStep: number;
-  appointment: Appointment | null;
-  bookedAppointments: Appointment[];
   setSelectedDate: (date: Date | null) => void;
+  selectedTime: string | null;
   setSelectedTime: (time: string | null) => void;
-  setFormData: (data: Partial<AppointmentFormData>) => void;
+  formData: FormData;
+  setFormData: (data: Partial<FormData>) => void;
+  currentStep: number;
   nextStep: () => void;
   prevStep: () => void;
-  goToStep: (step: number) => void;
-  confirmAppointment: () => void;
   resetBooking: () => void;
+  confirmAppointment: () => void;
+  appointment: Appointment | null;
+  bookedAppointments: Appointment[];
   isTimeSlotBooked: (date: Date, time: string) => boolean;
   cancelBooking: (appointmentId: string) => void;
 }
@@ -39,178 +39,176 @@ interface AppointmentContextType {
 // Create the context
 const AppointmentContext = createContext<AppointmentContextType | undefined>(undefined);
 
-// Initialize form data
-const initialFormData: AppointmentFormData = {
+// Initial form data
+const initialFormData: FormData = {
   name: '',
   email: '',
   phone: '',
-  notes: '',
-};
-
-// Helper function to serialize and deserialize Date objects for localStorage
-const serializeAppointment = (appointment: Appointment): string => {
-  return JSON.stringify({
-    ...appointment,
-    date: appointment.date.toISOString()
-  });
-};
-
-const deserializeAppointment = (serialized: string): Appointment => {
-  const parsed = JSON.parse(serialized);
-  return {
-    ...parsed,
-    date: new Date(parsed.date)
-  };
-};
-
-// Helper function to save appointments to localStorage
-const saveAppointmentsToLocalStorage = (appointments: Appointment[]) => {
-  try {
-    localStorage.setItem(
-      'bookedAppointments', 
-      JSON.stringify(appointments.map(app => ({
-        ...app,
-        date: app.date.toISOString()
-      })))
-    );
-  } catch (error) {
-    console.error('Error saving to localStorage:', error);
-  }
+  notes: ''
 };
 
 // Provider component
-export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
+export const AppointmentProvider = ({ children }: { children: React.ReactNode }) => {
+  // State for the selected date
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  
+  // State for the selected time
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [formData, setFormDataState] = useState<AppointmentFormData>(initialFormData);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
+  
+  // State for form data
+  const [formData, setFormDataInternal] = useState<FormData>(initialFormData);
+  
+  // State for booked appointments
   const [bookedAppointments, setBookedAppointments] = useState<Appointment[]>([]);
-
-  // Load booked appointments from localStorage on component mount
+  
+  // State for the current step in the booking process
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  
+  // State for the most recently booked appointment
+  const [appointment, setAppointment] = useState<Appointment | null>(null);
+  
+  // Load booked appointments from localStorage when component mounts
   useEffect(() => {
-    try {
+    if (typeof window !== 'undefined') {
       const storedAppointments = localStorage.getItem('bookedAppointments');
+      
       if (storedAppointments) {
-        const appointments = JSON.parse(storedAppointments).map(deserializeAppointment);
-        setBookedAppointments(appointments);
+        try {
+          // Parse stored appointments and convert date strings back to Date objects
+          const parsedAppointments = JSON.parse(storedAppointments);
+          setBookedAppointments(
+            parsedAppointments.map((app: any) => ({
+              ...app,
+              date: new Date(app.date)
+            }))
+          );
+        } catch (error) {
+          console.error('Error parsing appointments from localStorage:', error);
+        }
       }
-    } catch (error) {
-      console.error('Error loading appointments from localStorage:', error);
     }
   }, []);
-
-  // Update form data
-  const setFormData = (data: Partial<AppointmentFormData>) => {
-    setFormDataState(prev => ({ ...prev, ...data }));
+  
+  // Helper function to save appointments to localStorage
+  const saveAppointmentsToLocalStorage = (appointments: Appointment[]) => {
+    // Convert Date objects to strings for storage
+    const serializedAppointments = appointments.map(appointment => ({
+      ...appointment,
+      date: appointment.date.toISOString()
+    }));
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bookedAppointments', JSON.stringify(serializedAppointments));
+    }
   };
-
-  // Navigation functions
+  
+  // Function to update form data
+  const setFormData = (data: Partial<FormData>) => {
+    setFormDataInternal(prev => ({
+      ...prev,
+      ...data
+    }));
+  };
+  
+  // Function to move to the next step
   const nextStep = () => {
-    if (currentStep < 4) {
-      setCurrentStep(prev => prev + 1);
-    }
+    setCurrentStep(prev => prev + 1);
   };
-
+  
+  // Function to move to the previous step
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
-    }
+    setCurrentStep(prev => prev - 1);
   };
-
-  const goToStep = (step: number) => {
-    if (step >= 1 && step <= 4) {
-      setCurrentStep(step);
-    }
-  };
-
-  // Generate random appointment ID
-  const generateAppointmentId = () => {
-    return `BKE-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-  };
-
-  // Check if a time slot is already booked
+  
+  // Function to check if a time slot is already booked
   const isTimeSlotBooked = (date: Date, time: string): boolean => {
-    return bookedAppointments.some(app => {
-      const sameDate = app.date.toDateString() === date.toDateString();
-      const sameTime = app.time === time;
-      return sameDate && sameTime;
-    });
+    if (!date) return false;
+    
+    return bookedAppointments.some(
+      appointment => 
+        appointment.date.toDateString() === date.toDateString() && 
+        appointment.time === time
+    );
   };
-
-  // Cancel a booking
+  
+  // Function to confirm an appointment
+  const confirmAppointment = () => {
+    if (!selectedDate || !selectedTime) return;
+    
+    // Create a new appointment with a unique ID
+    const newAppointment: Appointment = {
+      id: uuidv4(),
+      date: selectedDate,
+      time: selectedTime,
+      formData
+    };
+    
+    // Add the new appointment to the booked appointments
+    const updatedAppointments = [...bookedAppointments, newAppointment];
+    setBookedAppointments(updatedAppointments);
+    
+    // Save to localStorage
+    saveAppointmentsToLocalStorage(updatedAppointments);
+    
+    // Set the current appointment for confirmation details
+    setAppointment(newAppointment);
+    
+    // Go to the confirmation screen
+    nextStep();
+  };
+  
+  // Function to cancel a booking
   const cancelBooking = (appointmentId: string) => {
     const updatedAppointments = bookedAppointments.filter(
-      app => app.id !== appointmentId
+      appointment => appointment.id !== appointmentId
     );
     
     setBookedAppointments(updatedAppointments);
     saveAppointmentsToLocalStorage(updatedAppointments);
   };
-
-  // Confirm appointment
-  const confirmAppointment = () => {
-    if (selectedDate && selectedTime) {
-      const newAppointment: Appointment = {
-        id: generateAppointmentId(),
-        date: selectedDate,
-        time: selectedTime,
-        formData,
-      };
-      
-      setAppointment(newAppointment);
-      
-      // Add to booked appointments
-      const updatedAppointments = [...bookedAppointments, newAppointment];
-      setBookedAppointments(updatedAppointments);
-      
-      // Save to localStorage
-      saveAppointmentsToLocalStorage(updatedAppointments);
-      
-      nextStep();
-    }
-  };
-
-  // Reset booking
+  
+  // Reset the booking process
   const resetBooking = () => {
     setSelectedDate(null);
     setSelectedTime(null);
-    setFormDataState(initialFormData);
-    setCurrentStep(1);
+    setFormDataInternal(initialFormData);
+    setCurrentStep(0);
     setAppointment(null);
   };
-
+  
+  // Context value
+  const value: AppointmentContextType = {
+    selectedDate,
+    setSelectedDate,
+    selectedTime,
+    setSelectedTime,
+    formData,
+    setFormData,
+    currentStep,
+    nextStep,
+    prevStep,
+    resetBooking,
+    confirmAppointment,
+    appointment,
+    bookedAppointments,
+    isTimeSlotBooked,
+    cancelBooking
+  };
+  
   return (
-    <AppointmentContext.Provider
-      value={{
-        selectedDate,
-        selectedTime,
-        formData,
-        currentStep,
-        appointment,
-        bookedAppointments,
-        setSelectedDate,
-        setSelectedTime,
-        setFormData,
-        nextStep,
-        prevStep,
-        goToStep,
-        confirmAppointment,
-        resetBooking,
-        isTimeSlotBooked,
-        cancelBooking,
-      }}
-    >
+    <AppointmentContext.Provider value={value}>
       {children}
     </AppointmentContext.Provider>
   );
 };
 
-// Custom hook to use the context
-export const useAppointment = (): AppointmentContextType => {
+// Custom hook to use the appointment context
+export const useAppointment = () => {
   const context = useContext(AppointmentContext);
-  if (!context) {
+  
+  if (context === undefined) {
     throw new Error('useAppointment must be used within an AppointmentProvider');
   }
+  
   return context;
 }; 
