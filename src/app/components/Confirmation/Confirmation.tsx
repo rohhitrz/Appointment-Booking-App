@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './Confirmation.module.scss';
 import { useAppointment } from '@/app/context/AppointmentContext';
 import Button from '../Button/Button';
@@ -15,6 +15,7 @@ import {
   FiCheck,
   FiShare2
 } from 'react-icons/fi';
+import QRCode from 'qrcode';
 
 const Confirmation = () => {
   const { appointment, resetBooking } = useAppointment();
@@ -26,17 +27,48 @@ const Confirmation = () => {
     // Trigger confetti effect
     setShowConfetti(true);
     
-    // Generate fake QR code after small delay
-    const timer = setTimeout(() => {
-      // In a real app, you would generate a real QR code with the appointment details
-      const qrCodeSvg = `data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 29 29"><path d="M1 1h7v7h-7zM21 1h7v7h-7zM1 21h7v7h-7zM11 3h1v1h-1zM13 3h3v1h-3zM17 3h1v1h-1zM11 5h1v3h-1zM13 5h1v1h-1zM15 5h1v1h-1zM17 5h3v1h-3zM19 7h1v1h-1zM11 9h1v1h-1zM13 9h3v1h-3zM19 9h1v1h-1zM11 11h3v1h-3zM17 11h3v1h-3zM21 11h3v1h-3zM25 11h1v1h-1zM27 11h1v1h-1zM9 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM23 13h1v1h-1zM27 13h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1zM13 15h1v1h-1zM15 15h1v1h-1zM19 15h1v1h-1zM21 15h1v1h-1zM25 15h1v1h-1zM27 15h1v1h-1zM1 17h1v1h-1zM3 17h3v1h-3zM7 17h1v1h-1zM11 17h1v1h-1zM13 17h1v1h-1zM17 17h1v1h-1zM21 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM27 17h1v1h-1zM9 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM17 19h1v1h-1zM19 19h1v1h-1zM21 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM9 21h1v1h-1zM13 21h1v1h-1zM17 21h1v1h-1zM21 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM11 23h1v1h-1zM13 23h1v1h-1zM15 23h1v1h-1zM17 23h1v1h-1zM19 23h1v1h-1zM25 23h1v1h-1zM9 25h3v1h-3zM13 25h3v1h-3zM19 25h1v1h-1zM21 25h1v1h-1zM23 25h1v1h-1zM27 25h1v1h-1zM9 27h1v1h-1zM13 27h1v1h-1zM19 27h1v1h-1zM21 27h1v1h-1zM23 27h1v1h-1zM27 27h1v1h-1z"/><rect x="1" y="1" width="7" height="7" fill="none" stroke="black"/><rect x="21" y="1" width="7" height="7" fill="none" stroke="black"/><rect x="1" y="21" width="7" height="7" fill="none" stroke="black"/></svg>`;
-      setQrCode(qrCodeSvg);
-    }, 800);
-    
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
+    // Generate QR code with actual appointment details
+    if (appointment) {
+      const appointmentData = {
+        id: appointment.id,
+        date: appointment.date.toISOString(),
+        time: appointment.time,
+        name: appointment.formData.name,
+        email: appointment.formData.email,
+        phone: appointment.formData.phone,
+        notes: appointment.formData.notes || ''
+      };
+      
+      const qrCodeData = JSON.stringify(appointmentData);
+      
+      // Generate QR code after a small delay
+      const timer = setTimeout(() => {
+        QRCode.toDataURL(qrCodeData, {
+          errorCorrectionLevel: 'H',
+          margin: 1,
+          width: 200,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        })
+        .then(url => {
+          setQrCode(url);
+        })
+        .catch(err => {
+          console.error('Error generating QR code:', err);
+          // Fallback to a simple QR code with just the appointment ID
+          QRCode.toDataURL(`BookEase Appointment: ${appointment.id}`)
+            .then(url => setQrCode(url))
+            .catch(() => setQrCode(null));
+        });
+      }, 800);
+      
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [appointment]);
   
   if (!appointment) {
     return null;
@@ -247,12 +279,13 @@ const Confirmation = () => {
               <img 
                 src={qrCode} 
                 alt="Booking QR Code" 
-                width={120} 
-                height={120} 
+                width={200} 
+                height={200} 
                 style={{ margin: '0 auto', display: 'block' }}
               />
             </div>
             <p>Show this QR code when you arrive</p>
+            <small>Scan to verify appointment details</small>
           </motion.div>
         )}
         
