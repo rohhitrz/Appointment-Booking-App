@@ -1,0 +1,61 @@
+@import '../../styles/variables.module';
+
+.toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  background: var(--surface);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all $transition-normal;
+  box-shadow: 
+    3px 3px 7px var(--shadow-1),
+    -3px -3px 7px var(--shadow-2);
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  svg {
+    width: 24px;
+    height: 24px;
+    color: var(--text);
+    transition: all $transition-normal;
+  }
+}
+
+.iconContainer {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  
+  .icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 24px;
+    height: 24px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  
+  .hidden {
+    opacity: 0;
+    transform: rotate(90deg);
+  }
+  
+  .visible {
+    opacity: 1;
+    transform: rotate(0);
+  }
+} 
